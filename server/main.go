@@ -9,13 +9,16 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"strings"
 )
 
 const (
 	protocol = "unix"
 	sockAddr = "/tmp/echo.sock"
 )
+
+type GenericID interface {
+	string | int
+}
 
 type Request struct {
 	ID     string      `json:"id"`
@@ -81,16 +84,20 @@ func echo(conn net.Conn) {
 	json.Unmarshal(buf.Bytes(), &r)
 	fmt.Println(r)
 
-	s := strings.ToUpper(buf.String())
-
-	buf.Reset()
-	buf.WriteString(s)
-
-	_, err = io.Copy(conn, buf)
-	if err != nil {
-		log.Println(err)
+	if r.Method != "echo" {
 		return
 	}
 
-	fmt.Println("<<< ", s)
+	// s := strings.ToUpper(buf.String())
+
+	// buf.Reset()
+	// buf.WriteString(s)
+
+	// _, err = io.Copy(conn, buf)
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return
+	// }
+
+	fmt.Println("<<< ", r)
 }
