@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"reflect"
 )
 
 const (
@@ -16,13 +17,14 @@ const (
 	sockAddr = "/tmp/echo.sock"
 )
 
-type GenericID interface {
-	string | int
+type Request struct {
+	ID     interface{} `json:"id"`
+	Method string      `json:"method"`
+	Params interface{} `json:"params"`
 }
 
-type Request struct {
-	ID     string      `json:"id"`
-	Method string      `json:"method"`
+type Response struct {
+	ID     interface{} `json:"id"`
 	Params interface{} `json:"params"`
 }
 
@@ -82,22 +84,43 @@ func echo(conn net.Conn) {
 
 	r := Request{}
 	json.Unmarshal(buf.Bytes(), &r)
-	fmt.Println(r)
+
+	if r.ID == nil {
+		return
+	}
+
+	if r.Method == "" {
+		return
+	}
+
+	if r.Params == nil {
+		return
+	}
+
+	if reflect.TypeOf(r.ID).String() != "string" || reflect.TypeOf(r.ID).String() != "int" {
+		return
+	}
 
 	if r.Method != "echo" {
 		return
 	}
 
+	re := Response{}
+	re.ID = r.ID
+	re.Params = r.Params
+
+	reb, _ := json.Marshal(re)
+
 	// s := strings.ToUpper(buf.String())
 
-	// buf.Reset()
-	// buf.WriteString(s)
+	buf.Reset()
+	buf.Write(reb)
 
-	// _, err = io.Copy(conn, buf)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return
-	// }
+	_, err = io.Copy(conn, buf)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 	fmt.Println("<<< ", r)
 }
